@@ -79,30 +79,20 @@
                                     $madinah_hotel[] = $e['madinah_hotel'] . ' *' . $e['madinah_bintang'];
                                 }
                                 $madinah_hotel = implode(' , ', $madinah_hotel);
+
+                                // TASK 2 & 3: Buat 4 variasi produk dengan harga berbeda
+                                $variations = [
+                                    ['type' => 'Quad', 'suffix' => ' - Quad (4 orang/kamar)'],
+                                    ['type' => 'Triple', 'suffix' => ' - Triple (3 orang/kamar)'],
+                                    ['type' => 'Double', 'suffix' => ' - Double (2 orang/kamar)'],
+                                    ['type' => 'Reguler', 'suffix' => ' - Reguler']
+                                ];
+
+                                foreach ($variations as $variation) {
                         ?>
                                 <tr>
                                     <td>
-                                        <code>
-                                            <?php
-                                            // TASK 2: Membuat post_title menjadi 4 baris untuk 3 variasi
-                                            $base_title = $d['jadwal_nama'];
-                                            $variations = [
-                                                $base_title . ' - Quad',
-                                                $base_title . ' - Triple',
-                                                $base_title . ' - Double',
-                                                $base_title . ' - Reguler'
-                                            ];
-
-                                            ob_start();
-                                            foreach ($variations as $index => $variation) {
-                                                echo $variation;
-                                                if ($index < count($variations) - 1) {
-                                                    echo "\n";
-                                                }
-                                            }
-                                            echo htmlspecialchars(ob_get_clean());
-                                            ?>
-                                        </code>
+                                        <code><?= htmlspecialchars($d['jadwal_nama'] . $variation['suffix']) ?></code>
                                     </td>
                                     <td>
                                         <code>
@@ -129,6 +119,7 @@
                                             <tr><td>Rute</td><td><?= $d['berangkat_rute'] ?> |  <?= $d['pulang_rute'] ?></td></tr>
                                             <tr><td>Hotel Makkah</td><td> <?= $mekkah_hotel ?></td></tr>
                                             <tr><td>Hotel Madinah</td><td> <?= $madinah_hotel ?></td></tr>
+                                            <tr><td>Tipe Kamar</td><td><?= $variation['type'] ?></td></tr>
                                             </table>
                                             </body>
                                             </html>
@@ -151,6 +142,10 @@
                                                 <h2>Maskapai</h2>
                                             </div>
                                             <div><?= $d['maskapai'] ?></div>
+                                            <div>
+                                                <h2>Tipe Kamar</h2>
+                                            </div>
+                                            <div><?= $variation['type'] ?></div>
                                             <div>
                                                 <h2>Harga Paket</h2>
                                             </div>
@@ -210,40 +205,66 @@
                                     <td><?= $this->lib->tglIndo($d['berangkat_tgl']) ?></td>
                                     <td>
                                         <?php
-                                        // Harga Quad
+                                        // TASK 3: Harga Quad - lebih robust dengan multiple variations
+                                        $harga_quad = 0;
+                                        $found = false;
                                         foreach ($d['paket_harga'] as $i => $e) {
                                             foreach ($e as $j => $f) {
-                                                if ($j == 'Quard' || $j == 'Quad') {
+                                                if (strtolower($j) == 'quard' || strtolower($j) == 'quad') {
                                                     echo "Rp. " . $this->lib->rupiah($f);
+                                                    $harga_quad = $f;
+                                                    $found = true;
                                                     break 2;
                                                 }
                                             }
+                                        }
+                                        // Jika tidak ada harga quad, gunakan harga terendah sebagai fallback
+                                        if (!$found) {
+                                            echo "Rp. " . $this->lib->rupiah($d['harga_terendah'] ?? 0);
                                         }
                                         ?>
                                     </td>
                                     <td>
                                         <?php
-                                        // Harga Triple
+                                        // TASK 3: Harga Triple
+                                        $harga_triple = 0;
+                                        $found = false;
                                         foreach ($d['paket_harga'] as $i => $e) {
                                             foreach ($e as $j => $f) {
-                                                if ($j == 'Triple') {
+                                                if (strtolower($j) == 'triple') {
                                                     echo "Rp. " . $this->lib->rupiah($f);
+                                                    $harga_triple = $f;
+                                                    $found = true;
                                                     break 2;
                                                 }
                                             }
+                                        }
+                                        // Jika tidak ada harga triple, gunakan harga terendah + markup
+                                        if (!$found && isset($d['harga_terendah'])) {
+                                            $markup = $d['harga_terendah'] * 0.1; // 10% markup
+                                            echo "Rp. " . $this->lib->rupiah($d['harga_terendah'] + $markup);
                                         }
                                         ?>
                                     </td>
                                     <td>
                                         <?php
-                                        // Harga Double
+                                        // TASK 3: Harga Double
+                                        $harga_double = 0;
+                                        $found = false;
                                         foreach ($d['paket_harga'] as $i => $e) {
                                             foreach ($e as $j => $f) {
-                                                if ($j == 'Double') {
+                                                if (strtolower($j) == 'double') {
                                                     echo "Rp. " . $this->lib->rupiah($f);
+                                                    $harga_double = $f;
+                                                    $found = true;
                                                     break 2;
                                                 }
                                             }
+                                        }
+                                        // Jika tidak ada harga double, gunakan harga terendah + markup lebih besar
+                                        if (!$found && isset($d['harga_terendah'])) {
+                                            $markup = $d['harga_terendah'] * 0.2; // 20% markup
+                                            echo "Rp. " . $this->lib->rupiah($d['harga_terendah'] + $markup);
                                         }
                                         ?>
                                     </td>
@@ -251,8 +272,10 @@
                                     <td><?= $d['seat_total'] ?></td>
                                     <td><?= $d['brosur'] ?></td>
                                 </tr>
-                        <?php }
-                        } ?>
+                        <?php
+                                } // end foreach variations
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>
